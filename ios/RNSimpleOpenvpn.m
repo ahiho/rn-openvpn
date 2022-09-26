@@ -19,7 +19,7 @@
 
 #import "RNSimpleOpenvpn.h"
 
-NSString *const RN_OPEN_VPN = @"RNSimpleOpenvpn";
+NSString *const RN_OPEN_VPN = @"Squirrel";
 NSString *const STATE_CHANGED_EVENT = @"stateChanged";
 
 typedef NS_ENUM(NSInteger, VpnState) {
@@ -67,27 +67,19 @@ RCT_EXPORT_METHOD(connect
                   : (RCTPromiseResolveBlock)resolve rejecter
                   : (RCTPromiseRejectBlock)reject) {
   self.ovpnOptions = options;
-  [self prepareVpn:resolve rejecter:reject];
+  [self prepareVpnIfNeeded:^(NSError * _Nullable err) {
+    if(!err) {
+      [self startVpn:resolve rejecter:reject];
+    } else {
+      reject(@"E_PREPARE_ERRROR", @"Prepare VPN failed", err);
+    }
+  }];
 }
 
 RCT_EXPORT_METHOD(disconnect : (RCTPromiseResolveBlock)resolve rejecter : (RCTPromiseRejectBlock)reject) {
   [self.providerManager.connection stopVPNTunnel];
   _cachedManager = nil;
   resolve(nil);
-}
-
-- (void)prepareVpn:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject {
-  [NETunnelProviderManager loadAllFromPreferencesWithCompletionHandler:^(
-                               NSArray<NETunnelProviderManager *> *_Nullable managers, NSError *_Nullable error) {
-    if (error) {
-      reject(@"E_PREPARE_ERRROR", @"Prepare VPN failed", error);
-      return;
-    }
-
-    self.providerManager = managers.firstObject ? managers.firstObject : [NETunnelProviderManager new];
-    _cachedManager = self.providerManager;
-    [self startVpn:resolve rejecter:reject];
-  }];
 }
 
 - (void)startVpn:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject {
@@ -156,6 +148,24 @@ RCT_EXPORT_METHOD(disconnect : (RCTPromiseResolveBlock)resolve rejecter : (RCTPr
   }];
 }
 
+- (void)prepareVpnIfNeeded:(void (^)(NSError *_Nullable))completionHandler {
+  if (!_providerManager) {
+    [NETunnelProviderManager loadAllFromPreferencesWithCompletionHandler:^(
+                                 NSArray<NETunnelProviderManager *> *_Nullable managers, NSError *_Nullable error) {
+      if (error) {
+        completionHandler(error);
+        return;
+      }
+
+      self.providerManager = managers.firstObject ? managers.firstObject : [NETunnelProviderManager new];
+      _cachedManager = self.providerManager;
+      completionHandler(NULL);
+    }];
+  } else {
+    completionHandler(NULL);
+  }
+}
+
 RCT_EXPORT_METHOD(observeState : (RCTPromiseResolveBlock)resolve rejecter : (RCTPromiseRejectBlock)reject) {
   NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
 
@@ -178,8 +188,14 @@ RCT_EXPORT_METHOD(stopObserveState : (RCTPromiseResolveBlock)resolve rejecter : 
 }
 
 RCT_EXPORT_METHOD(getCurrentState : (RCTPromiseResolveBlock)resolve rejecter : (RCTPromiseRejectBlock)reject) {
-  NSDictionary *vpnState = [self getVpnState:self.providerManager.connection.status];
-  resolve(vpnState[@"state"]);
+  [self prepareVpnIfNeeded:^(NSError * _Nullable err) {
+    if(!err) {
+      NSDictionary *vpnState = [self getVpnState:self.providerManager.connection.status];
+      resolve(vpnState[@"state"]);
+    } else {
+      reject(@"E_PREPARE_ERRROR", @"Prepare VPN failed", err);
+    }
+  }];
 }
 
 - (NSDictionary *)getVpnState:(NEVPNStatus)status {
