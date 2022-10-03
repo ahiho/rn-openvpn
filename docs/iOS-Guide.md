@@ -16,7 +16,7 @@ Enter the name of the `Network Extension` (e.g. NEOvpn) and refer to the followi
 
 ### Step 2
 
-Open the [Apple Developer](https://developer.apple.com/account/resources) website
+Open the [Apple Developer](https://developer.apple.com/account/resources) websites
 
 > The `group` and `identifier` may have been created automatically when you added the `Network Extension`
 
