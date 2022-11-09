@@ -102,6 +102,7 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
     private boolean mStarting = false;
     private long mConnecttime;
     private OpenVPNManagement mManagement;
+    private Timer timer;
     private final IBinder mBinder = new IOpenVPNServiceInternal.Stub() {
 
         @Override
@@ -308,7 +309,7 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
         // Try to set the priority available since API 16 (Jellybean)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             jbNotificationExtras(priority, nbuilder);
-            addVpnActionsToNotification(nbuilder);
+            // addVpnActionsToNotification(nbuilder);
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
@@ -1251,7 +1252,6 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
 
         String channel = NOTIFICATION_CHANNEL_NEWSTATUS_ID;
         // Display byte count only after being connected
-
         {
             if (level == LEVEL_CONNECTED) {
                 mDisplayBytecount = true;

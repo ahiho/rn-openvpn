@@ -49,6 +49,7 @@ import de.blinkt.openvpn.VpnProfile;
 import de.blinkt.openvpn.core.ConfigParser;
 import de.blinkt.openvpn.core.ConnectionStatus;
 import de.blinkt.openvpn.core.IOpenVPNServiceInternal;
+import de.blinkt.openvpn.core.OpenVPNManagement;
 import de.blinkt.openvpn.core.OpenVPNService;
 import de.blinkt.openvpn.core.ProfileManager;
 import de.blinkt.openvpn.core.VPNLaunchHelper;
@@ -66,7 +67,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @RequiresApi(api = Build.VERSION_CODES.N)
-public class RNSimpleOpenvpnModule extends ReactContextBaseJavaModule implements VpnStatus.StateListener {
+public class RNSimpleOpenvpnModule extends ReactContextBaseJavaModule implements VpnStatus.StateListener, VpnStatus.ByteCountListener {
 
   private String TAG = RNSimpleOpenvpnModule.class.getSimpleName();
   private HashMap<String, Object> ovpnOptions;
@@ -105,6 +106,8 @@ public class RNSimpleOpenvpnModule extends ReactContextBaseJavaModule implements
     OVPN_TWO_THREE_PEER,
   }
 
+  private int mVpnState;
+
   private static ReactApplicationContext reactContext;
 
   private IOpenVPNServiceInternal mService;
@@ -126,6 +129,7 @@ public class RNSimpleOpenvpnModule extends ReactContextBaseJavaModule implements
     reactContext = context;
     reactContext.addActivityEventListener(mActivityEventListener);
     VpnStatus.addStateListener(this);
+    VpnStatus.addByteCountListener(this);
 
     Intent intent = new Intent(context, OpenVPNService.class);
     intent.setAction(OpenVPNService.START_SERVICE);
@@ -155,6 +159,35 @@ public class RNSimpleOpenvpnModule extends ReactContextBaseJavaModule implements
     constants.put("CompatMode", compatMode);
 
     return constants;
+  }
+
+  @Override
+  public void updateByteCount(long in, long out, long diffIn, long diffOut) {
+      if (VpnState.VPN_STATE_CONNECTED == mVpnState) {
+        WritableMap params = Arguments.createMap();
+        params.putString("download", humanReadableByteCount(diffIn / OpenVPNManagement.mBytecountInterval));
+        params.putString("upload", humanReadableByteCount(diffOut / OpenVPNManagement.mBytecountInterval));
+        sendEvent("speedChanged", params);
+      }
+  }
+
+  private String humanReadableByteCount(long bytes) {
+    bytes = bytes * 8;
+    int unit = 1000;
+
+    int exp = Math.max(0, Math.min((int) (Math.log(bytes) / Math.log(unit)), 3));
+
+    float bytesUnit = (float) (bytes / Math.pow(unit, exp));
+    switch (exp) {
+      case 0:
+          return String.format("%.0f bit/s", bytesUnit);
+      case 1:
+          return String.format("%.1f kbit/s", bytesUnit);
+      case 2:
+          return String.format("%.1f Mbit/s", bytesUnit);
+      default:
+          return String.format("%.1f Gbit/s", bytesUnit);
+  }
   }
 
   private void sendEvent(String eventName, @Nullable WritableMap params) {
@@ -310,7 +343,8 @@ public class RNSimpleOpenvpnModule extends ReactContextBaseJavaModule implements
   @Override
   public void updateState(String state, String logmessage, int localizedResId, ConnectionStatus level, Intent Intent) {
     WritableMap params = Arguments.createMap();
-    params.putInt("state", getVpnState(level));
+    mVpnState = getVpnState(level);
+    params.putInt("state", mVpnState);
     params.putString("message", state);
     params.putString("level", level.toString());
     sendEvent("stateChanged", params);

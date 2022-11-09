@@ -39,6 +39,11 @@ interface VpnEventParams {
   level?: string;
 }
 
+interface VpnSpeedInformation {
+  upload: string;
+  download: string;
+}
+
 declare namespace RNSimpleOpenvpn {
   function connect(options: VpnOptions): Promise<void>;
   function disconnect(): Promise<void>;
@@ -64,6 +69,17 @@ declare const addVpnStateListener: (callback: (e: VpnEventParams) => void) => vo
 
 declare const removeVpnStateListener: () => void;
 
-export { addVpnStateListener, removeVpnStateListener, VpnOptions, VpnEventParams };
+declare const addVpnSpeedListener: (callback: (e: VpnSpeedInformation) => void) => void;
+
+declare const removeVpnSpeedListener: () => void;
+
+export {
+  addVpnStateListener,
+  removeVpnStateListener,
+  addVpnSpeedListener,
+  removeVpnSpeedListener,
+  VpnOptions,
+  VpnEventParams,
+};
 
 export default RNSimpleOpenvpn;

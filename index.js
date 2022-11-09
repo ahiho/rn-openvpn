@@ -22,6 +22,7 @@ import { NativeModules, NativeEventEmitter } from 'react-native';
 const { RNSimpleOpenvpn } = NativeModules;
 const localEventEmitter = new NativeEventEmitter(RNSimpleOpenvpn);
 let stateListener = null;
+let speedListener = null;
 
 export const addVpnStateListener = (callback) => {
   stateListener = localEventEmitter.addListener('stateChanged', (e) => callback(e));
@@ -33,6 +34,18 @@ export const removeVpnStateListener = () => {
   }
   stateListener.remove();
   stateListener = null;
+};
+
+export const addVpnSpeedListener = (callback) => {
+  speedListener = localEventEmitter.addListener('speedChanged', (e) => callback(e));
+};
+
+export const removeVpnSpeedListener = () => {
+  if (!speedListener) {
+    return;
+  }
+  speedListener.remove();
+  speedListener = null;
 };
 
 export default RNSimpleOpenvpn;
