@@ -102,7 +102,7 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
     private boolean mStarting = false;
     private long mConnecttime;
     private OpenVPNManagement mManagement;
-    private Timer timer;
+    // private Timer timer;
     private final IBinder mBinder = new IOpenVPNServiceInternal.Stub() {
 
         @Override
