@@ -163,7 +163,7 @@ public class RNSimpleOpenvpnModule extends ReactContextBaseJavaModule implements
 
   @Override
   public void updateByteCount(long in, long out, long diffIn, long diffOut) {
-      if (VpnState.VPN_STATE_CONNECTED == mVpnState) {
+      if (VpnState.VPN_STATE_CONNECTED.ordinal() == mVpnState) {
         WritableMap params = Arguments.createMap();
         params.putString("download", humanReadableByteCount(diffIn / OpenVPNManagement.mBytecountInterval));
         params.putString("upload", humanReadableByteCount(diffOut / OpenVPNManagement.mBytecountInterval));
